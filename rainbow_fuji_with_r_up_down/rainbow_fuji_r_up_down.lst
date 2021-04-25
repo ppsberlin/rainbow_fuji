@@ -1,0 +1,139 @@
+mads 2.1.0 build 8 (23 Dec 19)
+Source: D:\Onedrive\WUDSN\Workspace\Atari800\pps\rainbow_fuji\rainbow_fuji_r_up_down.asm
+     1 				/*
+     2 				rainbow_fuji by PPs
+     3 				coded:	24.04.2021
+     4 				*/
+     4
+     5
+     6 				;degine needed registers
+     7 = E45C			setvbv	= $e45c
+     8 = E462			xitvbv	= $e462
+     9 = D016			color0	= $d016
+    10 = D017			color1	= $d017
+    11 = D018			color2	= $d018
+    12 = D01A			colbak	= $d01a
+    13 = D01F			consol	= $d01f
+    14 = D010			trig0	= $d010
+    15 = D011			trig1	= $d011
+    16 = D40E			nmien	= $d40e
+    17 = D409			chbase	= $d409
+    18 = D20F			skctl	= $d20f
+    19 = D40A			wsync	= $d40a
+    20
+    21 				.enum	@dmactl
+    22 = 0000				blank	= %00
+    23 = 0001				narrow	= %01
+    24 = 0002				standard= %10
+    25 = 0003				wide	= %11
+    26 = 0004				missiles= %100
+    27 = 0008				players	= %1000
+    28 = 0010				lineX1	= %10000
+    29 = 0000				lineX2	= %00000
+    30 = 0020				dma	= %100000
+    31 				.ende
+    32
+    33 = 2000				BEGIN	equ $2000		;address of first bytes
+    34
+    35 					.zpvar .byte regx,regy,rega,store
+    36
+    37 = 0080			REGX
+    37 = 0081			REGY
+    37 = 0082			REGA
+    37 = 0083			STORE
+    37 					org BEGIN
+    38 					.proc ant
+    39 FFFF> 2000-22F8> 70 70 + 	.he 70 70 70 70 70 60 80 44
+    40 2008 D9 20			.wo screen
+    41 200A 04 04 04 04 04 04 + :10	.he 04
+    42 2014 02 02 02 02 02 02	:06	.he 02
+    43 201A 41				.he 41
+    44 201B 00 20			.wo ant
+    45 					.endp
+    46 				;------------
+    47 201D				.proc main
+    48 201D A9 00 8D 2F 02		mva #0 559			;screen off
+    49 2022 A9 00 8D 30 02 A9 + 	mwa #ant 560			;new DL
+    50 202C A9 7B 8D 00 02 A9 + 	mwa #dli 512			;DLI address
+    51 2036 A9 07			lda #7				;deffered VBI
+    52 2038 A2 20			ldx >vbi
+    53 203A A0 64			ldy <vbi
+    54 203C 20 5C E4			jsr setvbv
+    55 203F A9 C0 8D 0E D4		mva #$c0 nmien			;DLI & VBI on
+    56 2044 A9 21 8D 2F 02		mva #@dmactl(narrow|dma) 559	;screen on
+    57 2049			loop
+    58 				;test if user wants to exit
+    59 2049 AD 10 D0			lda trig0			;trigger 0?
+    60 204C F0 13			beq out
+    61 204E AD 11 D0			lda trig1			;trigger 1?
+    62 2051 F0 0E			beq out
+    63 2053 AD 0F D2			lda skctl			;any key?
+    64 2056 29 04			and #$04
+    65 2058 F0 07			beq out
+    66 205A AD 1F D0			lda consol			;start key?
+    67 205D 29 01			and #1
+    68 205F D0 E8			bne loop			;nothing, so loop back
+    69 2061 4C 74 E4		out	jmp $e474			;warm reset
+    70 					.endp
+    71 				;------------
+    72 2064				.proc vbi
+    73 2064 A9 7B 8D 00 02 A9 + 	mwa #dli 512
+    74 206E A9 00 85 4D			mva #0 77
+    75 2072 8D 1A D0			sta colbak
+    76 2075 8D 18 D0			sta color2
+    77 2078 4C 62 E4			jmp xitvbv
+    78 					.endp
+    79 				;------------
+    80 207B				.proc dli
+    81 207B 85 82			sta rega
+    82 207D 86 80			stx regx
+    83 207F 84 81			sty regy
+    84
+    85 2081 A9 24 8D 09 D4		mva >fnt chbase
+    86 2086 8D 0A D4			sta wsync
+    87 2089 A5 13			lda $13
+    88 208B C5 83			cmp store
+    89 208D D0 2B			bne chg
+    90 208F A4 14		furth	ldy $14
+    91 2091 A2 2A			ldx #42
+    92 2093 8C 17 D0		lp	sty color1
+    93 2096 8C 18 D0			sty color2
+    94 2099 8C 16 D0			sty color0
+    95 209C 8D 0A D4 8D 0A D4	:2	sta wsync
+    96 20A2 C8			what	iny
+    97 20A3 CA				dex
+    98 20A4 10 ED			bpl lp
+    99 20A6 A9 00 8D 18 D0		mva #0 color2
+   100 20AB A9 0E 8D 17 D0		mva #$e color1
+   101 20B0 8D 0A D4			sta wsync
+   102 20B3 A4 81			ldy regy
+   103 20B5 A6 80			ldx regx
+   104 20B7 A5 82			lda rega
+   105 20B9 40				rti
+   106 				;-------
+   107 20BA			chg
+   108 20BA AD A2 20			lda what
+   109 20BD C9 88			cmp #$88	;dey?
+   110 20BF D0 0C			bne c_dey
+   111 				;c_iny
+   112 20C1 A9 C8			lda #$c8	;iny
+   113 20C3 8D A2 20			sta what
+   114 20C6 A5 13 85 83			mva $13 store
+   115 20CA 4C 8F 20			jmp furth
+   116 20CD			c_dey
+   117 20CD A9 88			lda #$88	;dey
+   118 20CF 8D A2 20			sta what
+   119 20D2 A5 13 85 83			mva $13 store
+   120 20D6 4C 8F 20			jmp furth
+   121 					.endp
+   122 				;------------
+   123 20D9				.proc screen
+   124 20D9 00 00 00 00 00 00 + 	ins 'fujilogo_r.scr'
+   125 					.endp
+   126 				;------------
+   127 22F9				.align $0400
+   128 2400				.proc fnt
+   129 2400-27FF> 00 00 00 00 + 	ins 'fujilogo_r.fnt'
+   130 					.endp
+   131 				;------------
+   132 02E0-02E1> 1D 20			run main

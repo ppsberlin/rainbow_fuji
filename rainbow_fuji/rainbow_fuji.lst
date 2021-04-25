@@ -1,0 +1,109 @@
+mads 2.1.0 build 8 (23 Dec 19)
+Source: D:\Onedrive\WUDSN\Workspace\Atari800\pps\rainbow_fuji\rainbow_fuji.asm
+     1 				/*
+     2 				rainbow_fuji by PPs
+     3 				coded:	24.04.2021
+     4 				*/
+     4
+     5
+     6 = 2000				BEGIN	equ $2000		;assemble code to this address
+     7
+     8 				;define needed registers
+     9 = E45C			setvbv	= $e45c
+    10 = E462			xitvbv	= $e462
+    11 = D016			color0	= $d016
+    12 = D017			color1	= $d017
+    13 = D018			color2	= $d018
+    14 = D01A			colbak	= $d01a
+    15 = D01F			consol	= $d01f
+    16 = D010			trig0	= $d010
+    17 = D011			trig1	= $d011
+    18 = D40E			nmien	= $d40e
+    19 = D409			chbase	= $d409
+    20 = D20F			skctl	= $d20f
+    21 = D40A			wsync	= $d40a
+    22
+    23 				.enum	@dmactl
+    24 = 0000				blank	= %00
+    25 = 0001				narrow	= %01
+    26 = 0002				standard= %10
+    27 = 0003				wide	= %11
+    28 = 0004				missiles= %100
+    29 = 0008				players	= %1000
+    30 = 0010				lineX1	= %10000
+    31 = 0000				lineX2	= %00000
+    32 = 0020				dma	= %100000
+    33 				.ende
+    34 				;define registers end
+    35
+    36 					.zpvar .byte regx,regy,rega
+    37
+    38 = 0080			REGX
+    38 = 0081			REGY
+    38 = 0082			REGA
+    38 					org BEGIN
+    39 					.proc ant
+    40 FFFF> 2000-22B8> 70 70 + 	.he 70 70 70 70 70 60 80 44
+    41 2008 99 20			.wo screen
+    42 200A 04 04 04 04 04 04 + :10	.he 04
+    43 2014 02 02 02 02 02 02	:06	.he 02
+    44 201A 41				.he 41
+    45 201B 00 20			.wo ant
+    46 					.endp
+    47 				;------------
+    48 201D				.proc main
+    49 201D A9 00 8D 2F 02		mva #0 559			;screen off
+    50 2022 A9 00 8D 30 02 A9 + 	mwa #ant 560			;new DL
+    51 202C A9 63 8D 00 02 A9 + 	mwa #dli 512			;DLI address
+    52 2036 A9 07			lda #7				;deffered VBI
+    53 2038 A2 20			ldx >vbi
+    54 203A A0 4C			ldy <vbi
+    55 203C 20 5C E4			jsr setvbv
+    56 203F A9 C0 8D 0E D4		mva #$c0 nmien			;DLI & VBI on
+    57 2044 A9 21 8D 2F 02		mva #@dmactl(narrow|dma) 559	;screen on
+    58 2049 4C 49 20		loop	jmp loop
+    59 					.endp
+    60 				;------------
+    61 204C				.proc vbi
+    62 204C A9 63 8D 00 02 A9 + 	mwa #dli 512
+    63 2056 A9 00 85 4D			mva #0 77
+    64 205A 8D 1A D0			sta colbak
+    65 205D 8D 18 D0			sta color2
+    66 2060 4C 62 E4			jmp xitvbv
+    67 					.endp
+    68 				;------------
+    69 2063				.proc dli
+    70 2063 85 82			sta rega
+    71 2065 86 80			stx regx
+    72 2067 84 81			sty regy
+    73
+    74 2069 A9 24 8D 09 D4		mva >fnt chbase
+    75 206E 8D 0A D4			sta wsync
+    76 2071 A4 14			ldy $14
+    77 2073 A2 55			ldx #85
+    78 2075 8C 17 D0		lp	sty color1
+    79 2078 8C 18 D0			sty color2
+    80 207B 8C 16 D0			sty color0
+    81 207E 8D 0A D4			sta wsync
+    82 2081 88				dey
+    83 2082 CA				dex
+    84 2083 10 F0			bpl lp
+    85 2085 A9 00 8D 18 D0		mva #0 color2
+    86 208A A9 0E 8D 17 D0		mva #$e color1
+    87 208F 8D 0A D4			sta wsync
+    88 2092 A4 81			ldy regy
+    89 2094 A6 80			ldx regx
+    90 2096 A5 82			lda rega
+    91 2098 40				rti
+    92 					.endp
+    93 				;------------
+    94 2099				.proc screen
+    95 2099 00 00 00 00 00 00 + 	ins 'fujilogo.scr'
+    96 					.endp
+    97 				;------------
+    98 22B9				.align $0400
+    99 2400				.proc fnt
+   100 2400-27FF> 00 00 00 00 + 	ins 'fujilogo.fnt'
+   101 					.endp
+   102 				;------------
+   103 02E0-02E1> 1D 20			run main
